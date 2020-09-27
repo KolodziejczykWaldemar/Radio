@@ -4,11 +4,12 @@ import sys
 import time
 import tty
 import termios
+import RPi.GPIO as GPIO
 
 import vlc
 import requests
 
-ABSOLUTE_PATH = '/home/waldemar/PycharmProjects/Radio/'
+ABSOLUTE_PATH = '/home/pi/Desktop/Radio/'
 ANNOUNCEMENT_VOLUME = 120
 STREAM_VOLUME = 50
 
@@ -60,6 +61,10 @@ def play_announcement_mplayer(announcement,
                               volume=120):
     os.system('mplayer -volume {} {}'.format(volume, announcement))
 
+def setup_led(led_pin):
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setwarnings(False)
+    GPIO.setup(led_pin, GPIO.OUT, initial=GPIO.LOW)
 
 name_to_announcement = {
     'nowy_swiat': 'odtwarzam_radio_nowy_swiat.mp3',
@@ -108,6 +113,11 @@ if __name__ == '__main__':
     if not check_internet_connection(timeout=1):
         print("No internet connection.")
         sys.exit()
+
+    led_pin = 16
+    setup_led(led_pin)
+    GPIO.output(led_pin, GPIO.HIGH)
+
     last_station_name = None
     while True:
         press = getch()
@@ -118,35 +128,44 @@ if __name__ == '__main__':
             if ord(press) == 115:
                 if last_station_name is not None:
                     stop(last_station_name)
+                    GPIO.output(led_pin, GPIO.LOW)
                     play_announcement_mplayer(announcement=ABSOLUTE_PATH + 'records/' + stop_announcement,
                                               volume=ANNOUNCEMENT_VOLUME)
+                    GPIO.output(led_pin, GPIO.HIGH)
 
             elif ord(press) == 112:
                 if last_station_name is not None:
                     stop(last_station_name)
+                    GPIO.output(led_pin, GPIO.LOW)
                     play_announcement_mplayer(announcement=ABSOLUTE_PATH + 'records/' + resume_announcement,
                                               volume=ANNOUNCEMENT_VOLUME)
                     start(station_name=last_station_name,
                           volume=STREAM_VOLUME)
+                    GPIO.output(led_pin, GPIO.HIGH)
 
             elif ord(press) == 13:
                 if last_station_name is not None:
                     stop(last_station_name)
                 play_announcement_mplayer(outro_announcement)
+                GPIO.output(led_pin, GPIO.LOW)
                 break
 
             else:
                 if press in char_to_name.keys():
                     if last_station_name is not None:
                         stop(last_station_name)
+                    GPIO.output(led_pin, GPIO.LOW)
                     play_announcement_mplayer(announcement=ABSOLUTE_PATH + 'records/' + name_to_announcement[char_to_name[press]],
                                               volume=ANNOUNCEMENT_VOLUME)
                     start(station_name=char_to_name[press],
                           volume=STREAM_VOLUME)
+                    GPIO.output(led_pin, GPIO.HIGH)
                     last_station_name = char_to_name[press]
                 else:
                     if last_station_name is not None:
                         stop(last_station_name)
+                    GPIO.output(led_pin, GPIO.LOW)
                     play_announcement_mplayer(announcement=ABSOLUTE_PATH + 'records/' + wrong_announcement,
                                               volume=ANNOUNCEMENT_VOLUME)
+                    GPIO.output(led_pin, GPIO.HIGH)
                     print('Wrong station number.')
